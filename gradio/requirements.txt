@@ -1,0 +1,6 @@
+-r ../requirements.txt
+gradio==6.32.0
+requests>=2.32,<3
+sentencepiece==0.2.3
+sacremoses==0.2.0
+subword-nmt==0.3.8

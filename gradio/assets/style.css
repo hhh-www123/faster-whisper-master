@@ -1,0 +1,76 @@
+/* Desktop workspace fits the viewport; long results scroll inside their panels. */
+.gradio-container {width:100%!important; max-width:1440px!important; box-sizing:border-box; margin:auto; padding:12px 20px!important; --block-radius:12px; font-family:Inter,'Microsoft YaHei',sans-serif!important}
+.gradio-container .main {max-width:none!important; padding:0!important}
+body {background:#f0f5fa!important}
+#workspace {gap:8px!important}
+.hero {display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-radius:16px; background:linear-gradient(120deg,#0b1830,#123d54); color:#fff}
+.hero h1 {font-size:23px; margin:4px 0 0; font-weight:700; color:#fff}
+.eyebrow {font-size:10px; letter-spacing:2px; color:#72e2ed}
+.badge {padding:6px 12px; border:1px solid #72cfe455; border-radius:100px; font-size:12px; color:#b7e9ef}
+#model-status {font-size:12px; color:#64748b; padding:0 5px; min-height:20px}
+#dashboard {gap:16px!important; align-items:stretch}
+#input-panel,#result-panel {gap:10px!important; padding:16px; background:var(--block-background-fill); border:1px solid var(--border-color-primary); border-radius:16px; min-height:0}
+#input-panel,#result-panel,#result-tabs .column {flex-wrap:nowrap!important}
+#input-panel > *,#input-panel .form > * {flex-shrink:0!important}
+#input-panel .form {flex-wrap:nowrap!important}
+#input-panel .form > .block {padding:6px 10px!important}
+#source-audio .upload-container,#source-audio .upload-container > .wrap {height:140px!important; min-height:140px!important}
+#input-panel h3 {margin:0!important; font-size:17px}
+.session-meta {display:none!important}
+#transport-controls {gap:20px!important; justify-content:center; flex-wrap:nowrap!important; padding:3px 0}
+#transport-controls .transport-item {align-items:center; gap:5px!important; flex:0 1 110px!important; min-width:0!important}
+.transport-item .prose {text-align:center; font-size:12px}
+#recognize-button.round-control,#play-button.round-control {width:58px!important; height:58px!important; min-width:58px!important; min-height:58px!important; max-width:58px; border-radius:50%!important; padding:0!important; font-size:0!important; border:1px solid #8bc7d5; color:#0b8198; background:#edf9fc; display:flex; align-items:center; justify-content:center; flex-shrink:0!important; box-shadow:0 3px 10px #087f9b18}
+.round-control::before {content:'▶'; font:22px/1 sans-serif}
+.round-control[data-icon]::before {content:attr(data-icon)}
+#recognize-button.is-on,#play-button.is-on {background:linear-gradient(135deg,#087f9b,#0b9aa6);color:white;border-color:transparent}
+#play-button:disabled {opacity:.45;cursor:wait}
+#play-button.is-busy {opacity:1;animation:recognition-pulse 1.2s ease-in-out infinite}
+@keyframes recognition-pulse {50% {box-shadow:0 0 0 6px #16a7bc22}}
+#playback-notice {font-size:12px;color:#14798e;min-height:0;padding:0}
+#playback-notice:has(.player-notice:empty) {display:none}
+/* Keep native seeking/volume controls; the adjacent round button owns playback. */
+#source-audio audio::-webkit-media-controls-play-button {display:none}
+#source-audio.is-processing {pointer-events:none}
+#source-audio.is-processing audio {pointer-events:auto}
+#job-status {border-left:3px solid #16a7bc; padding:8px 10px; background:#eaf7fa; color:#155367; border-radius:6px; font-size:12px; max-height:90px; overflow:auto}
+#result-summary {font-size:13px; min-height:25px; margin:0}
+.play-hint {font-size:12px; color:#658296}
+#workspace.has-played .play-hint {visibility:hidden}
+#workspace:not(.has-played) #full-source textarea,#workspace:not(.has-played) #full-translation textarea,#workspace:not(.has-played) #segment-table {visibility:hidden}
+#sync-captions {background:#0c1b2f; border-radius:12px; padding:18px; color:#eef9ff; display:flex; flex-direction:column; overflow:hidden}
+#sync-captions > .html-container {display:flex; flex:1; min-height:0}
+#sync-captions .html-container > .prose {display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden}
+.caption-empty,.caption-wait {color:#9bb2c7; padding:40px 12px; text-align:center; font-size:15px}
+.caption-clock {font:13px monospace; color:#53d5e5; padding:0 0 10px; flex-shrink:0}
+.caption-data {display:flex; flex-direction:column; height:100%; min-height:0}
+.caption-lines {overflow:auto; min-height:0; flex:1; position:relative; overflow-anchor:none; overscroll-behavior:contain; scrollbar-color:#30546a transparent}
+.caption-line {padding:12px 14px; margin:6px 0; border-radius:10px; border-left:3px solid transparent; color:#9aafc1; transition:background .15s,color .15s; white-space:pre-wrap; font-size:22px; line-height:1.7}
+.caption-line[hidden],.caption-wait[hidden] {display:none}
+.caption-line.active {background:#16364b; border-color:#3cd7e0; color:white}
+#sync-captions .caption-line > span {color:inherit!important}
+#sync-captions .caption-source {display:block; white-space:pre-line; overflow-wrap:anywhere}
+.caption-line small {display:block; color:#6f97b2; font:11px monospace; margin-bottom:4px}
+.caption-translation {display:block; font-size:18px; color:#79dadd; margin-top:7px; white-space:pre-line; overflow-wrap:anywhere}
+.caption-translation[hidden] {display:none}
+@media(min-width:900px) {
+ html,body {height:100%; overflow:hidden!important}
+ #workspace {height:calc(100dvh - 24px); overflow:hidden}
+ #dashboard {flex:1!important; min-height:0; flex-wrap:nowrap!important; overflow:hidden}
+ #input-panel {flex:3 1 0!important; min-width:300px!important; max-width:390px; overflow:auto}
+ #result-panel {flex:7 1 0!important; min-width:0!important; overflow:hidden}
+ #source-audio {flex-shrink:0}
+ #result-tabs {display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden}
+ #result-tabs > .tab-container {flex-shrink:0}
+ #result-tabs > .tabitem {height:100%; min-height:0; overflow:auto}
+ #result-tabs > .tabitem > .column {flex:1!important; height:100%; min-height:0; overflow:auto}
+ #result-tabs > .tabitem:first-of-type {overflow:hidden}
+ #result-tabs .tabitem > .form {height:100%}
+ #sync-captions {height:100%; min-height:0; box-sizing:border-box}
+ #full-source textarea,#full-translation textarea {max-height:calc(100dvh - 300px); min-height:160px; overflow:auto}
+}
+@media(max-width:899px) {
+ .gradio-container {padding:10px!important}
+ .hero {padding:14px}.hero h1 {font-size:20px}.badge {display:none}
+ #sync-captions {height:330px}.caption-line {font-size:19px}
+}

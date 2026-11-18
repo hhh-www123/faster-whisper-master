@@ -1,0 +1,28 @@
+# Byte-compiled / Optimized / DLL Files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Distribution / Packaging
+venv/
+
+# Unit Test
+.pytest_cache/
+
+# Ignore IDE, Editor Files
+.idea/
+.vscode/
+
+# Local Web environment and generated test artifacts
+.venv-web/
+gradio/test_output/
+faster_whisper.egg-info/
+
+# Downloaded models and optional FLEURS data (prepare locally)
+/model/
+/datasets/data/
+/datasets/.cache/
+
+# Generated experiment reports can contain local absolute paths
+/experiments/output/
