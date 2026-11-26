@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import run, switch_mode
-from core import ROOT, ChineseTranslator, caption_groups, WhisperModel
+from core import ROOT, ChineseTranslator, WhisperModel
 
 
 def main():
@@ -27,19 +27,10 @@ def main():
             assert again[5]["text"] == cached["text"]
             assert 'data-mode="语音转写"' in original[3]
             assert 'data-mode="中文翻译"' in again[3]
-    # No extra translations or subtitle splits are introduced by punctuation,
-    # sentence length, or gaps inside an original model segment.
-    for text in [" Hello, world. I'm ready!", ' '.join(['word']*40)]:
-        segment = dict(start=0,end=40,text=text,units=[dict(start=0,end=40,text=text)],translation='完整译文')
-        grouped = caption_groups([segment])
-        assert len(grouped) == 1
-        assert grouped[0]['text'] == text
-        assert grouped[0]['translations'] == [dict(start=0,text='完整译文')]
-    groups = translated[5]['caption_lines']
-    assert len(groups) == len(cached['segments'])
-    assert [g['text'] for g in groups] == [s['text'] for s in cached['segments']]
-    assert [g['translations'][0]['text'] for g in groups] == [s['translation'] for s in translated[5]['segments']]
-    print('PASS: whole-segment translation, no clause splitting, cached modes and original text preservation')
+    groups = translated[5]['sentence_lines']
+    assert ''.join(g['text'] for g in groups).strip() == cached['text']
+    assert all(g['translations'] for g in groups)
+    print('PASS: cached modes, bilingual sentence cues and original text preservation')
 
 
 if __name__ == '__main__':

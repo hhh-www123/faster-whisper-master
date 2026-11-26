@@ -20,6 +20,7 @@ import sentencepiece as spm
 from faster_whisper import WhisperModel
 from faster_whisper.audio import decode_audio
 from subtitles import sentence_captions
+from subtitles.pauses import detect_pauses
 
 APP_DIR = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "model" / "small"
@@ -186,9 +187,13 @@ def _prepare_sentence_lines(result, translator, cache):
         return cache[text]
 
     result["sentence_lines"] = sentence_captions(
-        result["segments"], result["language"], translate=translate_missing, complete=result.get("complete", True)
+        result["segments"], result["language"], translate=translate_missing,
+        complete=result.get("complete", True), audio_pauses=result.get("audio_pauses"),
     )
-    result["sentence_translation_ready"] = all(row["translations"] for row in result["sentence_lines"])
+    result["sentence_translation_ready"] = (
+        all(s.get("translation") for s in result["segments"])
+        and all(row["translations"] for row in result["sentence_lines"])
+    )
 
 
 def recognize(path, device="cpu", translate=False, progress=None):
@@ -216,11 +221,12 @@ def recognize_iter(path, device="cpu", translate=False, progress=None):
         model = MANAGER.get(device)
         stream, info = model.transcribe(audio, language=None, task="transcribe",
                                         beam_size=5, vad_filter=True, word_timestamps=True)
+        audio_pauses = detect_pauses(audio) if info.language == "zh" else None
         result = dict(language=info.language, language_probability=info.language_probability,
                       duration=duration, asr_seconds=time.perf_counter()-started, elapsed=0,
                       device=MANAGER.device, precision=MANAGER.precision, segments=[],
                       text="", translation="", translation_requested=translate, warnings=[],
-                      complete=False, ready_until=0)
+                      complete=False, ready_until=0, audio_pauses=audio_pauses)
         translator = ChineseTranslator() if translate else None
         sentence_cache = {}
         iterator = iter(stream)
@@ -256,8 +262,6 @@ def recognize_iter(path, device="cpu", translate=False, progress=None):
             result["warnings"].append("未检测到可识别语音，请检查音量或录音内容。")
         result.update(complete=True, ready_until=duration, elapsed=time.perf_counter()-started)
         if translate:
-            result["caption_lines"] = caption_groups(result["segments"])
-            result["caption_translation_ready"] = all(g["translations"] for g in result["caption_lines"])
             _prepare_sentence_lines(result, translator, sentence_cache)
             result["elapsed"] = time.perf_counter() - started
         yield result
@@ -272,7 +276,7 @@ def timestamp(seconds):
 
 def translate_result(result, progress=None):
     """Translate cached ASR text; never decode audio or invoke Whisper again."""
-    if result.get("caption_translation_ready") and result.get("sentence_translation_ready"):
+    if result.get("sentence_translation_ready"):
         return result
     if not MANAGER.lock.acquire(blocking=False):
         raise ValueError("模型正在处理另一项任务，请稍后切换。")
@@ -297,22 +301,11 @@ def _translate_result_in_place(result, progress=None):
         except Exception as exc:
             result["warnings"].append(f"第 {i+1} 段翻译失败：{exc}")
             break
-    groups = caption_groups(result["segments"])
-    result["caption_lines"] = groups
-    result["caption_translation_ready"] = all(g["translations"] for g in groups)
     result["translation"] = "\n".join(s["translation"] for s in result["segments"] if s.get("translation"))
     result["translation_requested"] = True
     _prepare_sentence_lines(result, translator, {})
     result["elapsed"] += time.perf_counter() - started
     return result
-
-
-def caption_groups(segments):
-    """Keep each original ASR segment intact and reuse its whole translation."""
-    return [dict(start=s["start"], end=s["end"], text=s["text"],
-                 units=[dict(u) for u in s["units"]],
-                 translations=[dict(start=s["start"], text=s["translation"])] if s.get("translation") else [])
-            for s in segments]
 
 
 def export_result(result, directory):

@@ -64,6 +64,8 @@ python -m venv .venv-web
 
 字幕读取音频元素的 `currentTime`，暂停、跳转、重播均按媒体时间更新。词时间戳来自模型估计；中日文多字词内字符采用线性插值，没有可靠词时间戳时使用片段内插值。JSON 中的 `timing` 明确区分 `model-word` 与 `interpolated`，字符级时间只用于显示估算。
 
+中文转写用本地 Silero VAD 从原始音频测量短停顿，再结合词时间戳和分句上下文补标点。补上的标点随前一个词结束时显示。同步字幕中的中文原文和译文均在本机转换为简体。
+
 中文翻译复用 CTranslate2，加载 `../model/translation/` 中的 [Argos 官方翻译包](https://github.com/argosopentech/argospm-index)：英文直译中文，日文和西班牙文经英文中转。分词采用 SentencePiece 或 Moses/BPE，参考 [Argos 分词实现](https://github.com/argosopentech/argos-translate/blob/master/argostranslate/tokenizer.py)。不需要 PyTorch/Stanza。翻译仅缓存一个 CPU int8 模型，安装完成后不联网，音频和文本均在本机处理。各模型包保留原 README 与 OPUS CC-BY 4.0 许可说明。
 
 ## 测试

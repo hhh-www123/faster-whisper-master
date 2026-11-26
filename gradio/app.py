@@ -24,7 +24,8 @@ def subtitle_html(result, mode="语音转写"):
         return '<div class="caption-empty">完成识别后，在上方播放器播放音频，字幕将跟随播放进度出现。</div>'
     groups = result.get("sentence_lines") if mode == "中文翻译" else None
     if groups is None:
-        groups = sentence_captions(result["segments"], result["language"], complete=result.get("complete", True))
+        groups = sentence_captions(result["segments"], result["language"],
+                                   complete=result.get("complete", True), audio_pauses=result.get("audio_pauses"))
     data = html.escape(json.dumps(groups, ensure_ascii=False), quote=True)
     key = html.escape(result["_id"], quote=True)
     language = html.escape(result["language"], quote=True)

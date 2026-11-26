@@ -4,3 +4,4 @@ requests>=2.32,<3
 sentencepiece==0.2.3
 sacremoses==0.2.0
 subword-nmt==0.3.8
+opencc-python-reimplemented==0.1.7
