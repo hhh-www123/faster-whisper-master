@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 import gradio as gr
 
-from core import LANGUAGES, MANAGER, ROOT, caption_groups, export_result, load_audio, recognize, recognize_iter, translate_result
+from core import LANGUAGES, MANAGER, ROOT, export_result, load_audio, recognize, recognize_iter, translate_result
+from subtitles import sentence_captions
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -21,7 +22,9 @@ ASSETS = Path(__file__).parent / "assets"
 def subtitle_html(result, mode="语音转写"):
     if not result or not result["segments"]:
         return '<div class="caption-empty">完成识别后，在上方播放器播放音频，字幕将跟随播放进度出现。</div>'
-    groups = result.get("caption_lines") or caption_groups(result["segments"])
+    groups = result.get("sentence_lines") if mode == "中文翻译" else None
+    if groups is None:
+        groups = sentence_captions(result["segments"], result["language"], complete=result.get("complete", True))
     data = html.escape(json.dumps(groups, ensure_ascii=False), quote=True)
     key = html.escape(result["_id"], quote=True)
     language = html.escape(result["language"], quote=True)
@@ -204,7 +207,7 @@ def build_app():
                             table = gr.Dataframe(headers=["起止 / 秒", "原文", "中文"], datatype=["str"]*3, interactive=False, wrap=True, elem_id="segment-table")
                         with gr.Tab("下载与说明"):
                             files = gr.File(label="TXT / SRT / 时间戳 JSON", file_count="multiple", interactive=False)
-                            gr.Markdown("支持 WAV / MP3 / M4A。录音需浏览器授权，请使用 localhost 或 HTTPS。\n\n字幕依据模型词时间戳，中日文字在词内插值，**不代表真实字符级对齐**；译文按源片段显示。\n\n中译完全离线，日文/西班牙文经英文中转，可能有误差。全文和下载保留完整识别结果。")
+                            gr.Markdown("支持 WAV / MP3 / M4A。录音需浏览器授权，请使用 localhost 或 HTTPS。\n\n每个原文字幕块下方显示对应译文。译文按中文标点断句，并在对应语音区间内逐字出现。每个译文字的时间为显示估算。\n\n中译完全离线，日文/西班牙文经英文中转，可能有误差。全文和下载保留完整识别结果。")
         outputs = [status, model_status, summary, source, translated, table, captions, files, audio, device, mode, start, cached_result]
         start.click(toggle_recognition, recognition_enabled, [recognition_enabled, start, session_marker, recognition_label, status], queue=False, api_name="toggle_recognition")
         play.click(None, None, None, js="() => { window.speechTransport?.togglePlayback(); }", queue=False)

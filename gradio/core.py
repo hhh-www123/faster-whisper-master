@@ -19,6 +19,7 @@ import sentencepiece as spm
 
 from faster_whisper import WhisperModel
 from faster_whisper.audio import decode_audio
+from subtitles import sentence_captions
 
 APP_DIR = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "model" / "small"
@@ -171,6 +172,25 @@ class BPETokenizer:
 MANAGER = ModelManager()
 
 
+def _prepare_sentence_lines(result, translator, cache):
+    """Caller holds MANAGER.lock. Cache extra translations across partial updates."""
+    def translate_missing(text):
+        if text not in cache:
+            try:
+                cache[text] = translator.translate(text, result["language"])
+            except Exception as exc:
+                warning = f"字幕块翻译失败：{exc}"
+                if warning not in result["warnings"]:
+                    result["warnings"].append(warning)
+                cache[text] = None
+        return cache[text]
+
+    result["sentence_lines"] = sentence_captions(
+        result["segments"], result["language"], translate=translate_missing, complete=result.get("complete", True)
+    )
+    result["sentence_translation_ready"] = all(row["translations"] for row in result["sentence_lines"])
+
+
 def recognize(path, device="cpu", translate=False, progress=None):
     """Complete-result API retained for existing experiments and regression tests."""
     for result in recognize_iter(path, device, translate, progress):
@@ -202,6 +222,7 @@ def recognize_iter(path, device="cpu", translate=False, progress=None):
                       text="", translation="", translation_requested=translate, warnings=[],
                       complete=False, ready_until=0)
         translator = ChineseTranslator() if translate else None
+        sentence_cache = {}
         iterator = iter(stream)
         while True:
             step = time.perf_counter()
@@ -223,6 +244,8 @@ def recognize_iter(path, device="cpu", translate=False, progress=None):
                     result["warnings"].append(f"第 {len(result['segments'])} 段翻译失败：{exc}")
             result["text"] = "".join(s["text"] for s in result["segments"]).strip()
             result["translation"] = "\n".join(s["translation"] for s in result["segments"] if s.get("translation"))
+            if translator:
+                _prepare_sentence_lines(result, translator, sentence_cache)
             result["ready_until"] = max(result["ready_until"], min(duration, seg.end))
             result["elapsed"] = time.perf_counter()-started
             if progress:
@@ -235,6 +258,8 @@ def recognize_iter(path, device="cpu", translate=False, progress=None):
         if translate:
             result["caption_lines"] = caption_groups(result["segments"])
             result["caption_translation_ready"] = all(g["translations"] for g in result["caption_lines"])
+            _prepare_sentence_lines(result, translator, sentence_cache)
+            result["elapsed"] = time.perf_counter() - started
         yield result
     finally:
         MANAGER.lock.release()
@@ -247,7 +272,7 @@ def timestamp(seconds):
 
 def translate_result(result, progress=None):
     """Translate cached ASR text; never decode audio or invoke Whisper again."""
-    if result.get("caption_translation_ready"):
+    if result.get("caption_translation_ready") and result.get("sentence_translation_ready"):
         return result
     if not MANAGER.lock.acquire(blocking=False):
         raise ValueError("模型正在处理另一项任务，请稍后切换。")
@@ -260,7 +285,7 @@ def translate_result(result, progress=None):
 def _translate_result_in_place(result, progress=None):
     """Caller holds MANAGER.lock; raw exports and display pairs have real translations."""
     started = time.perf_counter()
-    result["warnings"] = [w for w in result["warnings"] if "段翻译失败" not in w]
+    result["warnings"] = [w for w in result["warnings"] if "段翻译失败" not in w and not w.startswith("字幕块翻译失败")]
     translator = ChineseTranslator()
     for i, segment in enumerate(result["segments"]):
         if segment.get("translation"):
@@ -277,6 +302,7 @@ def _translate_result_in_place(result, progress=None):
     result["caption_translation_ready"] = all(g["translations"] for g in groups)
     result["translation"] = "\n".join(s["translation"] for s in result["segments"] if s.get("translation"))
     result["translation_requested"] = True
+    _prepare_sentence_lines(result, translator, {})
     result["elapsed"] += time.perf_counter() - started
     return result
 

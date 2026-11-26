@@ -45,13 +45,14 @@ body {background:#f0f5fa!important}
 .caption-clock {font:13px monospace; color:#53d5e5; padding:0 0 10px; flex-shrink:0}
 .caption-data {display:flex; flex-direction:column; height:100%; min-height:0}
 .caption-lines {overflow:auto; min-height:0; flex:1; position:relative; overflow-anchor:none; overscroll-behavior:contain; scrollbar-color:#30546a transparent}
-.caption-line {padding:12px 14px; margin:6px 0; border-radius:10px; border-left:3px solid transparent; color:#9aafc1; transition:background .15s,color .15s; white-space:pre-wrap; font-size:22px; line-height:1.7}
+.caption-line {padding:12px 14px; margin:6px 0; border-radius:10px; border-left:3px solid transparent; transition:background .15s; white-space:pre-wrap; font-size:22px; line-height:1.7}
 .caption-line[hidden],.caption-wait[hidden] {display:none}
-.caption-line.active {background:#16364b; border-color:#3cd7e0; color:white}
-#sync-captions .caption-line > span {color:inherit!important}
-#sync-captions .caption-source {display:block; white-space:pre-line; overflow-wrap:anywhere}
+.caption-line.active {background:#16364b; border-color:#3cd7e0}
+#sync-captions .caption-source,#sync-captions .caption-source span,#sync-captions .caption-translation,#sync-captions .caption-translation span {color:#fff!important}
+#sync-captions .caption-source {display:block; white-space:pre-wrap; overflow-wrap:normal}
 .caption-line small {display:block; color:#6f97b2; font:11px monospace; margin-bottom:4px}
-.caption-translation {display:block; font-size:18px; color:#79dadd; margin-top:7px; white-space:pre-line; overflow-wrap:anywhere}
+.caption-translation {display:block; font-size:18px; margin-top:7px; white-space:pre-wrap; overflow-wrap:normal}
+.caption-upcoming {visibility:hidden; user-select:none}
 .caption-translation[hidden] {display:none}
 @media(min-width:900px) {
  html,body {height:100%; overflow:hidden!important}

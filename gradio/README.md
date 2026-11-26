@@ -33,6 +33,7 @@ python -m venv .venv-web
 | `app.py` | 页面、交互、任务进度、错误反馈及下载 |
 | `core.py` | 模型管理、识别、字幕时间单元、离线翻译、结果导出 |
 | `assets/` | 样式、持续识别/播放控制 `transport.js` 与时间同步字幕 `sync.js` |
+| `subtitles/` | 句级断句、字幕换行和中文字幕的时间关联 |
 | `prepare_translation.py` | 仅下载缺失的离线翻译包 |
 | `start.ps1` | 从任意目录启动本机 Web 系统 |
 | `requirements.txt` / `requirements.lock.txt` | Web 依赖及环境快照 |
@@ -61,13 +62,15 @@ python -m venv .venv-web
 
 默认自动检测语言，始终使用 `task="transcribe"` 保留原语言。CUDA 不可用时明确提示，用户可以切换 CPU。GPU 配置参考 [上游文档](../docs/FASTER_WHISPER.md)。
 
-字幕读取音频元素的 `currentTime`，暂停、跳转、重播均重新计算已显示内容，没有固定速度打字计时器。词时间戳来自模型估计；中日文多字词内字符采用线性插值，没有可靠词时间戳时使用片段内插值。JSON 中的 `timing` 明确区分 `model-word` 与 `interpolated`。这些估算不是实际字符级对齐。译文按源语音片段整体出现。
+字幕读取音频元素的 `currentTime`，暂停、跳转、重播均按媒体时间更新。词时间戳来自模型估计；中日文多字词内字符采用线性插值，没有可靠词时间戳时使用片段内插值。JSON 中的 `timing` 明确区分 `model-word` 与 `interpolated`，字符级时间只用于显示估算。
 
 中文翻译复用 CTranslate2，加载 `../model/translation/` 中的 [Argos 官方翻译包](https://github.com/argosopentech/argospm-index)：英文直译中文，日文和西班牙文经英文中转。分词采用 SentencePiece 或 Moses/BPE，参考 [Argos 分词实现](https://github.com/argosopentech/argos-translate/blob/master/argostranslate/tokenizer.py)。不需要 PyTorch/Stanza。翻译仅缓存一个 CPU int8 模型，安装完成后不联网，音频和文本均在本机处理。各模型包保留原 README 与 OPUS CC-BY 4.0 许可说明。
 
 ## 测试
 
-每个原始 ASR 片段只翻译一次，不按逗号重新翻译。外语原文在上、对应的整段中文在下，保留标点；显示时在逗号（含中文逗号、日文顿号）后换行，数字内部的逗号不拆开。原始文本、时间戳和下载不做排版清理。播放时字幕面板跟随当前文字底部滚动，长片段内的文字增长也会跟随；暂停后可以手动回看。
+字幕优先采用完整句子。标点和停顿规则、翻译时间关联以及新旧字幕对比见 [测试报告](TEST_REPORT.md#2026-11-26句级字幕断句)。长句优先在块内自然换行，字幕面板跟随实际显示的内容滚动。
+
+翻译模式按原文字幕块显示译文。完整包含的译文片段可以复用。字幕边界切到识别片段内部时，只对对应原文补译。中文译文按自己的标点组织，并根据对应语音区间逐字显示。暂停、跳转和重播均由音频进度决定。
 
 转写/翻译模式仍可直接切换，译文复用缓存，不重复识别音频。播放进度同步、播放前隐藏、暂停和跳转等交互保持不变。
 
@@ -76,6 +79,7 @@ python -m venv .venv-web
 .\.venv-web\Scripts\python.exe gradio/tests/web_errors.py
 .\.venv-web\Scripts\python.exe gradio/tests/web_modes.py
 .\.venv-web\Scripts\python.exe gradio/tests/web_transport.py
+.\.venv-web\Scripts\python.exe gradio/tests/web_sentences.py
 node gradio/tests/web_sync.cjs
 node gradio/tests/web_transport.cjs
 # 先启动 Web 服务；long.wav 由 web_long.py 准备，可用 --audio 指定其他长音频
@@ -86,7 +90,7 @@ node gradio/tests/web_transport.cjs
 .\.venv-web\Scripts\python.exe gradio/tests/web_api.py
 ```
 
-字幕测试读取 smoke 测试生成的真实时间戳；先运行 smoke。详见 [实际测试报告](TEST_REPORT.md)。
+句级字幕测试使用本地 FLEURS 样本，可通过 `--long-chinese 路径` 加入本地中文长音频，结果保存到 `test_output/sentence_comparison.json`。前端脚本测试可独立运行。详见 [实际测试报告](TEST_REPORT.md)。
 
 ## 限制
 
